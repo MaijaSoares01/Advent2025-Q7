@@ -1,0 +1,128 @@
+package org.example;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+
+public class Main {
+    private static int rows;
+    private static int cols;
+    private static char[][] splitterSearch;
+
+    public static void main(String[] args) {
+        BufferedReader reader;
+        char splitter = '^';
+        char start = 'S';
+        try {
+            reader = new BufferedReader(new FileReader("src/main/resources/TachyonManifolds.txt"));
+            String line = reader.readLine();
+            int rowCount = 0;
+            int colCount = 0;
+
+            // First pass: count rows and columns
+            while (line != null) {
+                rowCount++;
+                colCount = line.length(); // Assuming all rows have the same length
+                line = reader.readLine();
+            }
+
+            // Re-initialize BufferedReader and the splitterSearch array
+            reader.close();
+
+            reader = new BufferedReader(new FileReader("src/main/resources/TachyonManifolds.txt"));
+            splitterSearch = new char[rowCount][colCount];
+
+            int row = 0;
+            // Second pass: populate the splitterSearch array
+            while ((line = reader.readLine()) != null) {
+                splitterSearch[row] = line.toCharArray();
+                row++;
+            }
+            reader.close();
+
+            // Count all accessible rolls
+            System.out.println("How many times will the beam be split?: " +
+                    countBeamSplits(splitterSearch, '^', 'S'));
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static int countBeamSplits(char[][] splitterSearch, char splitter, char start) {
+        int rows = splitterSearch.length;
+        int cols = splitterSearch[0].length;
+
+        // find S
+        int sRow = -1, sCol = -1;
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                if (splitterSearch[r][c] == start) {
+                    sRow = r;
+                    sCol = c;
+                }
+            }
+        }
+
+        // beams represented as boolean array of columns
+        boolean[] beams = new boolean[cols];
+        beams[sCol] = true;   // initial beam under S
+
+        int splitCount = 0;
+
+        // process each row below S
+        for (int r = sRow + 1; r < rows; r++) {
+
+            boolean[] newBeams = new boolean[cols];
+
+            // beams simply move downward
+            for (int c = 0; c < cols; c++) {
+                if (beams[c]) {
+                    newBeams[c] = true;
+                }
+            }
+
+            boolean changed = true;
+
+            // repeatedly process splitters on this row
+            while (changed) {
+                changed = false;
+
+                for (int c = 0; c < cols; c++) {
+                    if (newBeams[c] && splitterSearch[r][c] == splitter) {
+                        // beam hits splitter → split
+                        newBeams[c] = false;
+                        splitCount++;
+
+                        if (c - 1 >= 0 && !newBeams[c - 1]) {
+                            newBeams[c - 1] = true;
+                            changed = true;
+                        }
+                        if (c + 1 < cols && !newBeams[c + 1]) {
+                            newBeams[c + 1] = true;
+                            changed = true;
+                        }
+                    }
+                }
+            }
+            // beams that survive continue downward next row
+            for (int c = 0; c < cols; c++) {
+                if (newBeams[c] && splitterSearch[r][c] != splitter) {
+                    beams[c] = true;
+                } else {
+                    beams[c] = false;
+                }
+            }
+            // stop early if no beams remain
+            boolean any = false;
+            for (boolean b : beams) {
+                if (b) {
+                    any = true;
+                    break;
+                }
+            }
+            if (!any) break;
+        }
+        return splitCount;
+    }
+}
