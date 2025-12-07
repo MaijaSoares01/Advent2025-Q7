@@ -40,13 +40,67 @@ public class Main {
             }
             reader.close();
 
-            // Count all accessible rolls
+            // Count all accessible beam splits
             System.out.println("How many times will the beam be split?: " +
                     countBeamSplits(splitterSearch, '^', 'S'));
+
+            // Count all accessible beam splits possibilities
+            System.out.println("How many possible beam splits?: " +
+                    countBeamSplitsPossibilities(splitterSearch, '^', 'S'));
 
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public static long countBeamSplitsPossibilities(char[][] splitterSearch, char splitter, char start) {
+        int rows = splitterSearch.length;
+        int cols = splitterSearch[0].length;
+
+        // find S
+        int sRow = -1, sCol = -1;
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                if (splitterSearch[r][c] == start) {
+                    sRow = r;
+                    sCol = c;
+                }
+            }
+            if (sRow != -1) break;
+        }
+        // Array holding number of timelines arriving at each column of current row
+        long[] timelinePrev = new long[cols];
+        timelinePrev[sCol] = 1;  // initial timeline at start column
+
+        // process each row below S
+        for (int r = sRow + 1; r < rows; r++) {
+            long[] timelineCurr = new long[cols];
+
+            for (int c = 0; c < cols; c++) {
+                if (timelinePrev[c] == 0) {
+                    continue;// no timelines from this column
+                }
+                if (splitterSearch[r - 1][c] == splitter) {
+                    //splitter splits timeline left and right
+                    if (c - 1 >= 0) {
+                        timelineCurr[c - 1] += timelinePrev[c];
+                    }
+                    if (c + 1 < cols) {
+                        timelineCurr[c + 1] += timelinePrev[c];
+                    }
+                } else {
+                    //no splitter, timeline continues straight down
+                    timelineCurr[c] += timelinePrev[c];
+                }
+            }
+            timelinePrev = timelineCurr; //move o next row
+        }
+        //sum all timelines in last row
+        long totalTimelines = 0;
+        for(long val:timelinePrev){
+            totalTimelines += val;
+        }
+        return totalTimelines;
     }
 
     public static int countBeamSplits(char[][] splitterSearch, char splitter, char start) {
